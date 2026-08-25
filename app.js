@@ -24,8 +24,7 @@ import {
     THEME: 'noteflow_theme_v1',
     USER_NAME: 'noteflow_username_v1',
     VIEW_MODE: 'noteflow_viewmode_v1',
-    SORT_BY: 'noteflow_sortby_v1',
-    GUEST_SESSION: 'noteflow_guest_session_v1'
+    SORT_BY: 'noteflow_sortby_v1'
   };
 
   // --- Default Sample Notes for New Users ---
@@ -125,7 +124,8 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
 
   // --- Application State ---
   const state = {
-    currentUser: null, // { uid, displayName, email, photoURL, provider: 'google' | 'guest' }
+    // Authenticated user state
+    currentUser: null, // { uid, displayName, email, photoURL, provider: 'google' }
     notes: [],
     activeView: 'all', // 'all' | 'pinned' | 'favorites' | 'trash'
     activeCategory: null, // null or string (e.g. 'Work')
@@ -152,7 +152,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     appLayout: document.getElementById('appLayout'),
     authScreen: document.getElementById('authScreen'),
     btnGoogleSignIn: document.getElementById('btnGoogleSignIn'),
-    btnGuestSignIn: document.getElementById('btnGuestSignIn'),
     googleIconWrapper: document.getElementById('googleIconWrapper'),
     googleSpinnerWrapper: document.getElementById('googleSpinnerWrapper'),
     googleBtnText: document.getElementById('googleBtnText'),
@@ -392,7 +391,7 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
   // --- Storage Controller ---
   const Storage = {
     getUserStorageKey() {
-      const uid = state.currentUser ? state.currentUser.uid : 'guest';
+      const uid = state.currentUser ? state.currentUser.uid : 'default_user';
       return `${STORAGE_KEYS.NOTES_PREFIX}${uid}`;
     },
 
@@ -402,7 +401,7 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
         let stored = localStorage.getItem(key);
 
         // Check for legacy migration
-        if (!stored && key === `${STORAGE_KEYS.NOTES_PREFIX}guest`) {
+        if (!stored && (key === `${STORAGE_KEYS.NOTES_PREFIX}guest` || key === `${STORAGE_KEYS.NOTES_PREFIX}default_user`)) {
           const legacy = localStorage.getItem(STORAGE_KEYS.LEGACY_NOTES);
           if (legacy) stored = legacy;
         }
@@ -885,37 +884,13 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     },
 
     initAuth() {
-      // Check if guest session is active
-      const isGuest = localStorage.getItem(STORAGE_KEYS.GUEST_SESSION) === 'true';
-      if (isGuest) {
-        this.setUser({
-          uid: 'guest_user',
-          displayName: state.userName || 'Sandy',
-          email: 'guest@noteflow.app',
-          photoURL: null,
-          provider: 'guest'
-        });
-        return;
-      }
-
       // Initialize Firebase Auth listener
       try {
         onAuthStatusChange((user) => {
           if (user) {
             this.setUser(user);
           } else {
-            // Check if guest was set in meantime
-            if (localStorage.getItem(STORAGE_KEYS.GUEST_SESSION) === 'true') {
-              this.setUser({
-                uid: 'guest_user',
-                displayName: state.userName || 'Sandy',
-                email: 'guest@noteflow.app',
-                photoURL: null,
-                provider: 'guest'
-              });
-            } else {
-              this.showAuthScreen();
-            }
+            this.showAuthScreen();
           }
         });
       } catch (err) {
@@ -956,18 +931,18 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
 
     updateUserProfileUI() {
       const user = state.currentUser || {
-        displayName: state.userName || 'Sandy',
-        email: 'guest@noteflow.app',
-        provider: 'guest'
+        displayName: state.userName || 'User',
+        email: 'user@gmail.com',
+        provider: 'google'
       };
 
-      const displayName = user.displayName || 'Sandy';
+      const displayName = user.displayName || 'User';
       DOM.greetingHeading.textContent = Helpers.getGreeting(displayName);
       DOM.sidebarUserName.textContent = displayName;
       DOM.settingsUserDisplay.textContent = displayName;
-      DOM.settingsUserEmail.textContent = user.email || 'offline@noteflow.local';
+      DOM.settingsUserEmail.textContent = user.email || 'user@gmail.com';
 
-      DOM.sidebarUserStatus.textContent = user.provider === 'google' ? 'Google Account' : 'Guest Account';
+      DOM.sidebarUserStatus.textContent = 'Google Account';
 
       // Profile Avatar Image handling
       if (user.photoURL) {
@@ -999,7 +974,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       try {
         const result = await signInWithGoogle();
         if (result.success) {
-          localStorage.removeItem(STORAGE_KEYS.GUEST_SESSION);
           this.setUser(result.user);
           Toast.show(`Welcome back, ${result.user.displayName}! 🎉`, 'success');
         } else {
@@ -1016,18 +990,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       }
     },
 
-    handleGuestSignIn() {
-      localStorage.setItem(STORAGE_KEYS.GUEST_SESSION, 'true');
-      this.setUser({
-        uid: 'guest_user',
-        displayName: 'Sandy',
-        email: 'guest@noteflow.app',
-        photoURL: null,
-        provider: 'guest'
-      });
-      Toast.show('Welcome to NoteFlow Guest Mode! ✨', 'info');
-    },
-
     async handleSignOut() {
       Modal.confirm({
         title: 'Sign Out?',
@@ -1035,7 +997,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
         proceedText: 'Sign Out',
         isDanger: false,
         onProceed: async () => {
-          localStorage.removeItem(STORAGE_KEYS.GUEST_SESSION);
           await signOutUser();
           Modal.close(DOM.settingsModal);
           this.showAuthScreen();
@@ -1483,7 +1444,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     bindEvents() {
       // Auth Actions
       DOM.btnGoogleSignIn.addEventListener('click', () => this.handleGoogleSignIn());
-      DOM.btnGuestSignIn.addEventListener('click', () => this.handleGuestSignIn());
       DOM.authOpenConfigBtn.addEventListener('click', () => {
         Modal.open(DOM.settingsModal);
       });

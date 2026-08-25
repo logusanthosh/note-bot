@@ -6,7 +6,7 @@ A modern, fast, and feature-complete Notes Management Web Application built with
 
 ## ✨ Features
 
-- **Google Firebase Authentication**: Seamless **Sign In with Google** popup auth + **Guest Mode** for instant local/offline use.
+- **Google Firebase Authentication**: Seamless **Sign In with Google** popup auth for secure user access.
 - **Sleek SaaS Aesthetics**: Refined typography (*Plus Jakarta Sans*), subtle glassmorphism (`backdrop-filter: blur`), smooth micro-animations, and card hover lifts.
 - **Dark & Light Modes**: Instant theme toggle with full color token support and persistent storage.
 - **Dynamic Greetings & Stats**: Time-of-day greeting (morning, afternoon, evening) with user's Google display name / avatar photo and live counters for Total Notes, Pinned, Favorites, and Trash.
@@ -29,9 +29,7 @@ A modern, fast, and feature-complete Notes Management Web Application built with
 
 ## 🔑 Firebase & Google Sign-In Setup
 
-NoteFlow includes a demo configuration so you can immediately explore and test with **Guest Mode**.
-
-To connect your own live **Firebase Google Authentication**:
+To connect your **Firebase Google Authentication**:
 
 1. Create a project in the [Firebase Console](https://console.firebase.google.com/).
 2. Navigate to **Build > Authentication > Sign-in method** and enable **Google**.
