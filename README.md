@@ -7,6 +7,7 @@ A modern, fast, and feature-complete Notes Management Web Application built with
 ## ✨ Features
 
 - **Google Firebase Authentication**: Seamless **Sign In with Google** popup auth for secure user access.
+- **4-Digit PIN Passcode Protection**: Secure sensitive individual notes with a custom 4-digit PIN lock. Locked notes mask their preview and require the passcode to view or edit.
 - **Sleek SaaS Aesthetics**: Refined typography (*Plus Jakarta Sans*), subtle glassmorphism (`backdrop-filter: blur`), smooth micro-animations, and card hover lifts.
 - **Dark & Light Modes**: Instant theme toggle with full color token support and persistent storage.
 - **Dynamic Greetings & Stats**: Time-of-day greeting (morning, afternoon, evening) with user's Google display name / avatar photo and live counters for Total Notes, Pinned, Favorites, and Trash.

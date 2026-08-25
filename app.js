@@ -141,6 +141,11 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     editorColor: 'default',
     editorIsPinned: false,
     editorIsFavorite: false,
+    editorPinCode: null, // holds 4-digit PIN for note currently in editor
+
+    // PIN & Lock Security State
+    targetUnlockNoteId: null,
+    targetUnlockAction: 'preview', // 'preview' | 'edit'
 
     // Confirm modal callback
     confirmCallback: null
@@ -229,6 +234,9 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     editorModalTitle: document.getElementById('editorModalTitle'),
     editorPinBtn: document.getElementById('editorPinBtn'),
     editorFavoriteBtn: document.getElementById('editorFavoriteBtn'),
+    editorLockBtn: document.getElementById('editorLockBtn'),
+    editorLockPill: document.getElementById('editorLockPill'),
+    editorLockStatusText: document.getElementById('editorLockStatusText'),
     closeEditorModalBtn: document.getElementById('closeEditorModalBtn'),
     cancelEditorBtn: document.getElementById('cancelEditorBtn'),
     noteForm: document.getElementById('noteForm'),
@@ -242,6 +250,26 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     editorWordCount: document.getElementById('editorWordCount'),
     editorCharCount: document.getElementById('editorCharCount'),
     editorLastSaved: document.getElementById('editorLastSaved'),
+
+    // Set PIN Modal
+    setPinModal: document.getElementById('setPinModal'),
+    closeSetPinModalBtn: document.getElementById('closeSetPinModalBtn'),
+    btnCancelSetPin: document.getElementById('btnCancelSetPin'),
+    btnSavePin: document.getElementById('btnSavePin'),
+    btnRemovePin: document.getElementById('btnRemovePin'),
+    setPinDigitsRow: document.getElementById('setPinDigitsRow'),
+    setPinErrorText: document.getElementById('setPinErrorText'),
+    setPinKeypad: document.getElementById('setPinKeypad'),
+
+    // Unlock PIN Modal
+    pinUnlockModal: document.getElementById('pinUnlockModal'),
+    closeUnlockModalBtn: document.getElementById('closeUnlockModalBtn'),
+    btnCancelUnlockPin: document.getElementById('btnCancelUnlockPin'),
+    btnSubmitUnlockPin: document.getElementById('btnSubmitUnlockPin'),
+    unlockNoteTitle: document.getElementById('unlockNoteTitle'),
+    unlockPinDigitsRow: document.getElementById('unlockPinDigitsRow'),
+    unlockPinErrorText: document.getElementById('unlockPinErrorText'),
+    unlockPinKeypad: document.getElementById('unlockPinKeypad'),
 
     // Settings Modal
     settingsModal: document.getElementById('settingsModal'),
@@ -286,6 +314,7 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     previewDateLabel: document.getElementById('previewDateLabel'),
     previewPinBtn: document.getElementById('previewPinBtn'),
     previewFavoriteBtn: document.getElementById('previewFavoriteBtn'),
+    previewLockBtn: document.getElementById('previewLockBtn'),
     previewModalTitle: document.getElementById('previewModalTitle'),
     previewTagsRow: document.getElementById('previewTagsRow'),
     previewContentRendered: document.getElementById('previewContentRendered'),
@@ -539,17 +568,245 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     }
   };
 
+  // --- 4-Digit PIN Passcode Manager ---
+  const PinManager = {
+    setupPinInputs(digitsRow, keypad, onSubmit) {
+      if (!digitsRow) return;
+      const inputs = Array.from(digitsRow.querySelectorAll('.pin-digit-input'));
+
+      inputs.forEach((input, index) => {
+        input.value = '';
+        input.classList.remove('filled');
+
+        input.oninput = (e) => {
+          const raw = e.target.value;
+          const val = raw.replace(/[^0-9]/g, '');
+          e.target.value = val ? val.slice(-1) : '';
+          if (e.target.value) {
+            e.target.classList.add('filled');
+            if (index < inputs.length - 1) {
+              inputs[index + 1].focus();
+              inputs[index + 1].select();
+            }
+          } else {
+            e.target.classList.remove('filled');
+          }
+
+          const fullPin = inputs.map(i => i.value).join('');
+          if (fullPin.length === 4 && typeof onSubmit === 'function') {
+            onSubmit(fullPin);
+          }
+        };
+
+        input.onkeydown = (e) => {
+          if (e.key === 'Backspace') {
+            if (input.value) {
+              input.value = '';
+              input.classList.remove('filled');
+              e.preventDefault();
+            } else if (index > 0) {
+              inputs[index - 1].value = '';
+              inputs[index - 1].classList.remove('filled');
+              inputs[index - 1].focus();
+              e.preventDefault();
+            }
+          } else if (e.key === 'ArrowLeft' && index > 0) {
+            inputs[index - 1].focus();
+            e.preventDefault();
+          } else if (e.key === 'ArrowRight' && index < inputs.length - 1) {
+            inputs[index + 1].focus();
+            e.preventDefault();
+          } else if (e.key === 'Enter') {
+            const fullPin = inputs.map(i => i.value).join('');
+            if (typeof onSubmit === 'function') {
+              onSubmit(fullPin);
+            }
+          }
+        };
+
+        input.onpaste = (e) => {
+          e.preventDefault();
+          const paste = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '').slice(0, 4);
+          if (paste) {
+            paste.split('').forEach((char, i) => {
+              if (inputs[i]) {
+                inputs[i].value = char;
+                inputs[i].classList.add('filled');
+              }
+            });
+            const nextFocus = Math.min(paste.length, inputs.length - 1);
+            inputs[nextFocus].focus();
+            if (paste.length === 4 && typeof onSubmit === 'function') {
+              onSubmit(paste);
+            }
+          }
+        };
+      });
+
+      if (keypad) {
+        keypad.onclick = (e) => {
+          const btn = e.target.closest('button');
+          if (!btn) return;
+          const num = btn.getAttribute('data-num');
+          const action = btn.getAttribute('data-action');
+
+          if (num !== null) {
+            const firstEmpty = inputs.find(i => !i.value);
+            if (firstEmpty) {
+              firstEmpty.value = num;
+              firstEmpty.classList.add('filled');
+              const idx = inputs.indexOf(firstEmpty);
+              if (idx < inputs.length - 1) {
+                inputs[idx + 1].focus();
+              }
+              const fullPin = inputs.map(i => i.value).join('');
+              if (fullPin.length === 4 && typeof onSubmit === 'function') {
+                onSubmit(fullPin);
+              }
+            }
+          } else if (action === 'backspace') {
+            for (let i = inputs.length - 1; i >= 0; i--) {
+              if (inputs[i].value) {
+                inputs[i].value = '';
+                inputs[i].classList.remove('filled');
+                inputs[i].focus();
+                break;
+              }
+            }
+          } else if (action === 'clear') {
+            inputs.forEach(i => {
+              i.value = '';
+              i.classList.remove('filled');
+            });
+            inputs[0].focus();
+          }
+        };
+      }
+    },
+
+    openSetPinModal() {
+      DOM.setPinErrorText.style.display = 'none';
+      DOM.setPinDigitsRow.classList.remove('pin-shake');
+      const inputs = Array.from(DOM.setPinDigitsRow.querySelectorAll('.pin-digit-input'));
+      inputs.forEach(i => {
+        i.value = '';
+        i.classList.remove('filled');
+      });
+
+      if (state.editorPinCode) {
+        DOM.btnRemovePin.style.display = 'inline-block';
+        state.editorPinCode.split('').forEach((digit, idx) => {
+          if (inputs[idx]) {
+            inputs[idx].value = digit;
+            inputs[idx].classList.add('filled');
+          }
+        });
+      } else {
+        DOM.btnRemovePin.style.display = 'none';
+      }
+
+      this.setupPinInputs(DOM.setPinDigitsRow, DOM.setPinKeypad, () => this.savePin());
+      Modal.open(DOM.setPinModal);
+      setTimeout(() => inputs[0].focus(), 120);
+    },
+
+    savePin() {
+      const inputs = Array.from(DOM.setPinDigitsRow.querySelectorAll('.pin-digit-input'));
+      const pin = inputs.map(i => i.value).join('');
+      if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+        DOM.setPinErrorText.textContent = 'Please enter a complete 4-digit numeric PIN.';
+        DOM.setPinErrorText.style.display = 'block';
+        DOM.setPinDigitsRow.classList.remove('pin-shake');
+        void DOM.setPinDigitsRow.offsetWidth;
+        DOM.setPinDigitsRow.classList.add('pin-shake');
+        return;
+      }
+
+      state.editorPinCode = pin;
+      NoteManager.updateLockStatusUI();
+      Modal.close(DOM.setPinModal);
+      Toast.show('4-Digit PIN passcode configured! 🔒', 'success');
+    },
+
+    removePin() {
+      state.editorPinCode = null;
+      NoteManager.updateLockStatusUI();
+      Modal.close(DOM.setPinModal);
+      Toast.show('Passcode protection removed.', 'info');
+    },
+
+    promptUnlock(noteId, action = 'preview') {
+      const note = state.notes.find(n => n.id === noteId);
+      if (!note) return;
+
+      state.targetUnlockNoteId = noteId;
+      state.targetUnlockAction = action;
+
+      DOM.unlockNoteTitle.textContent = note.title ? `"${note.title}"` : 'Enter Passcode';
+      DOM.unlockPinErrorText.style.display = 'none';
+      DOM.unlockPinDigitsRow.classList.remove('pin-shake');
+
+      const inputs = Array.from(DOM.unlockPinDigitsRow.querySelectorAll('.pin-digit-input'));
+      inputs.forEach(i => {
+        i.value = '';
+        i.classList.remove('filled');
+      });
+
+      this.setupPinInputs(DOM.unlockPinDigitsRow, DOM.unlockPinKeypad, () => this.verifyUnlock());
+      Modal.open(DOM.pinUnlockModal);
+      setTimeout(() => inputs[0].focus(), 120);
+    },
+
+    verifyUnlock() {
+      const note = state.notes.find(n => n.id === state.targetUnlockNoteId);
+      if (!note) {
+        Modal.close(DOM.pinUnlockModal);
+        return;
+      }
+
+      const inputs = Array.from(DOM.unlockPinDigitsRow.querySelectorAll('.pin-digit-input'));
+      const enteredPin = inputs.map(i => i.value).join('');
+
+      if (enteredPin === note.pinCode) {
+        Modal.close(DOM.pinUnlockModal);
+        Toast.show('Note unlocked 🔓', 'success');
+
+        if (state.targetUnlockAction === 'edit') {
+          NoteManager.openEditor(note.id, true);
+        } else {
+          NoteManager.openPreview(note.id, true);
+        }
+      } else {
+        DOM.unlockPinErrorText.textContent = 'Incorrect PIN passcode. Try again.';
+        DOM.unlockPinErrorText.style.display = 'block';
+        DOM.unlockPinDigitsRow.classList.remove('pin-shake');
+        void DOM.unlockPinDigitsRow.offsetWidth;
+        DOM.unlockPinDigitsRow.classList.add('pin-shake');
+        inputs.forEach(i => {
+          i.value = '';
+          i.classList.remove('filled');
+        });
+        inputs[0].focus();
+      }
+    }
+  };
+
   // --- Note Manager ---
   const NoteManager = {
-    openEditor(noteId = null) {
-      state.editingNoteId = noteId;
-      DOM.noteForm.reset();
-      DOM.modalTagChips.innerHTML = '';
-      state.editorTags = [];
-
+    openEditor(noteId = null, bypassPin = false) {
       if (noteId) {
         const note = state.notes.find(n => n.id === noteId);
         if (!note) return;
+
+        if (note.pinCode && !bypassPin) {
+          PinManager.promptUnlock(note.id, 'edit');
+          return;
+        }
+
+        state.editingNoteId = noteId;
+        DOM.noteForm.reset();
+        DOM.modalTagChips.innerHTML = '';
+        state.editorTags = Array.isArray(note.tags) ? [...note.tags] : [];
 
         DOM.editorModeTag.textContent = 'Edit Note';
         DOM.editorModalTitle.textContent = 'Edit Note';
@@ -557,21 +814,26 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
         DOM.noteContentInput.value = note.content;
         DOM.noteCategorySelect.value = note.category || 'Personal';
 
-        state.editorTags = Array.isArray(note.tags) ? [...note.tags] : [];
         state.editorColor = note.color || 'default';
         state.editorIsPinned = !!note.isPinned;
         state.editorIsFavorite = !!note.isFavorite;
+        state.editorPinCode = note.pinCode || null;
 
         DOM.editorLastSaved.textContent = `Last updated ${Helpers.timeAgo(note.updatedAt)}`;
       } else {
+        state.editingNoteId = null;
+        DOM.noteForm.reset();
+        DOM.modalTagChips.innerHTML = '';
+        state.editorTags = [];
+
         DOM.editorModeTag.textContent = 'New Note';
         DOM.editorModalTitle.textContent = 'Create Note';
         DOM.noteCategorySelect.value = state.activeCategory || 'Personal';
 
-        state.editorTags = [];
         state.editorColor = 'default';
         state.editorIsPinned = state.activeView === 'pinned';
         state.editorIsFavorite = state.activeView === 'favorites';
+        state.editorPinCode = null;
 
         DOM.editorLastSaved.textContent = 'Unsaved draft';
       }
@@ -579,6 +841,7 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       NoteManager.renderEditorTags();
       NoteManager.updateColorPickerUI();
       NoteManager.updateEditorToggleButtons();
+      NoteManager.updateLockStatusUI();
       NoteManager.updateEditorMetrics();
 
       Modal.open(DOM.noteEditorModal);
@@ -646,6 +909,18 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       }
     },
 
+    updateLockStatusUI() {
+      if (state.editorPinCode) {
+        DOM.editorLockBtn.classList.add('active-lock');
+        DOM.editorLockPill.classList.add('active-lock');
+        DOM.editorLockStatusText.textContent = 'PIN Protected 🔒';
+      } else {
+        DOM.editorLockBtn.classList.remove('active-lock');
+        DOM.editorLockPill.classList.remove('active-lock');
+        DOM.editorLockStatusText.textContent = 'Set PIN';
+      }
+    },
+
     updateEditorMetrics() {
       const content = DOM.noteContentInput.value || '';
       const charCount = content.length;
@@ -680,6 +955,7 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
             color: state.editorColor,
             isPinned: state.editorIsPinned,
             isFavorite: state.editorIsFavorite,
+            pinCode: state.editorPinCode || null,
             updatedAt: now
           };
           Storage.saveNotes(state.notes);
@@ -695,6 +971,7 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
           color: state.editorColor,
           isPinned: state.editorIsPinned,
           isFavorite: state.editorIsFavorite,
+          pinCode: state.editorPinCode || null,
           isTrash: false,
           createdAt: now,
           updatedAt: now
@@ -806,9 +1083,14 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       });
     },
 
-    openPreview(noteId) {
+    openPreview(noteId, bypassPin = false) {
       const note = state.notes.find(n => n.id === noteId);
       if (!note) return;
+
+      if (note.pinCode && !bypassPin) {
+        PinManager.promptUnlock(note.id, 'preview');
+        return;
+      }
 
       DOM.previewCategoryBadge.textContent = note.category || 'General';
       DOM.previewCategoryBadge.className = `preview-category-badge category-pill cat-${(note.category || 'other').toLowerCase()}`;
@@ -840,24 +1122,38 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
         DOM.previewFavoriteBtn.classList.remove('active-fav');
       }
 
+      if (note.pinCode) {
+        DOM.previewLockBtn.classList.add('active-lock');
+        DOM.previewLockBtn.title = 'Protected with 4-Digit PIN (Click to change/remove)';
+      } else {
+        DOM.previewLockBtn.classList.remove('active-lock');
+        DOM.previewLockBtn.title = 'Set 4-Digit PIN Lock';
+      }
+
+      DOM.previewLockBtn.onclick = () => {
+        Modal.close(DOM.notePreviewModal);
+        NoteManager.openEditor(note.id, true);
+        PinManager.openSetPinModal();
+      };
+
       DOM.previewPinBtn.onclick = () => {
         NoteManager.togglePin(note.id);
-        NoteManager.openPreview(note.id);
+        NoteManager.openPreview(note.id, true);
       };
 
       DOM.previewFavoriteBtn.onclick = () => {
         NoteManager.toggleFavorite(note.id);
-        NoteManager.openPreview(note.id);
+        NoteManager.openPreview(note.id, true);
       };
 
       DOM.previewEditBtn.onclick = () => {
         Modal.close(DOM.notePreviewModal);
-        NoteManager.openEditor(note.id);
+        NoteManager.openEditor(note.id, true);
       };
 
       DOM.previewEditBottomBtn.onclick = () => {
         Modal.close(DOM.notePreviewModal);
-        NoteManager.openEditor(note.id);
+        NoteManager.openEditor(note.id, true);
       };
 
       Modal.open(DOM.notePreviewModal);
@@ -1151,6 +1447,8 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       card.setAttribute('data-note-id', note.id);
       card.setAttribute('data-card-color', note.color || 'default');
 
+      const isLocked = Boolean(note.pinCode);
+
       let tagsHtml = '';
       if (Array.isArray(note.tags) && note.tags.length > 0) {
         tagsHtml = `<div class="card-tags">
@@ -1200,12 +1498,32 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
         `;
       }
 
+      const lockBadgeHtml = note.pinCode ? `
+        <span class="lock-indicator-badge" title="4-Digit PIN Protected">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        </span>
+      ` : '';
+
+      const previewHtml = isLocked ? `
+        <div class="card-preview">
+          <div class="locked-preview-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <span>Protected with PIN. Click to unlock.</span>
+          </div>
+        </div>
+      ` : `
+        <div class="card-preview">${Helpers.escapeHtml(note.content)}</div>
+      `;
+
       card.innerHTML = `
         <div class="card-header">
-          <h3 class="card-title">${Helpers.escapeHtml(note.title)}</h3>
+          <h3 class="card-title">${Helpers.escapeHtml(note.title)}${lockBadgeHtml}</h3>
           ${headerActionsHtml}
         </div>
-        <div class="card-preview">${Helpers.escapeHtml(note.content)}</div>
+        ${previewHtml}
         ${tagsHtml}
         <div class="card-footer">
           <div class="card-meta-left">
@@ -1224,7 +1542,11 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
           else if (action === 'favorite') NoteManager.toggleFavorite(note.id, e);
           else if (action === 'edit') {
             e.stopPropagation();
-            NoteManager.openEditor(note.id);
+            if (isLocked) {
+              PinManager.promptUnlock(note.id, 'edit');
+            } else {
+              NoteManager.openEditor(note.id);
+            }
           }
           else if (action === 'trash') NoteManager.moveToTrash(note.id, e);
           else if (action === 'restore') NoteManager.restoreFromTrash(note.id, e);
@@ -1232,6 +1554,8 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
         } else {
           if (note.isTrash) {
             Toast.show('Note is in trash. Restore it to edit or view.', 'info');
+          } else if (isLocked) {
+            PinManager.promptUnlock(note.id, 'preview');
           } else {
             NoteManager.openPreview(note.id);
           }
@@ -1541,6 +1865,21 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
         NoteManager.updateEditorToggleButtons();
       });
 
+      // PIN Passcode Button in Editor & Pill
+      DOM.editorLockBtn.addEventListener('click', () => PinManager.openSetPinModal());
+      DOM.editorLockPill.addEventListener('click', () => PinManager.openSetPinModal());
+
+      // Set PIN Modal Events
+      DOM.closeSetPinModalBtn.addEventListener('click', () => Modal.close(DOM.setPinModal));
+      DOM.btnCancelSetPin.addEventListener('click', () => Modal.close(DOM.setPinModal));
+      DOM.btnSavePin.addEventListener('click', () => PinManager.savePin());
+      DOM.btnRemovePin.addEventListener('click', () => PinManager.removePin());
+
+      // Unlock PIN Modal Events
+      DOM.closeUnlockModalBtn.addEventListener('click', () => Modal.close(DOM.pinUnlockModal));
+      DOM.btnCancelUnlockPin.addEventListener('click', () => Modal.close(DOM.pinUnlockModal));
+      DOM.btnSubmitUnlockPin.addEventListener('click', () => PinManager.verifyUnlock());
+
       // Color Palette in Editor
       DOM.colorPalettePicker.addEventListener('click', (e) => {
         const dot = e.target.closest('.color-dot');
@@ -1647,6 +1986,7 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
                   color: item.color || 'default',
                   isPinned: !!item.isPinned,
                   isFavorite: !!item.isFavorite,
+                  pinCode: item.pinCode ? String(item.pinCode) : null,
                   isTrash: !!item.isTrash,
                   createdAt: item.createdAt || Date.now(),
                   updatedAt: item.updatedAt || Date.now()

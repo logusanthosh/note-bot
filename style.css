@@ -2496,3 +2496,269 @@ html[data-theme="light"] .moon-icon {
     padding: 2rem 1.25rem;
   }
 }
+
+/* =========================================================================
+   17. 4-Digit PIN Passcode Protection System
+   ========================================================================= */
+
+/* Lock Pill Button in Editor Meta */
+.btn-lock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  font-family: var(--font-main);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-card-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-lock-pill:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.btn-lock-pill.active-lock {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
+}
+
+.btn-lock-pill.active-lock .lock-pill-icon {
+  color: #f59e0b;
+}
+
+.lock-pill-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Active Lock state on top bar tool buttons */
+.tool-toggle-btn.active-lock {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
+}
+
+/* Lock Badge in Note Cards */
+.lock-indicator-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-xs);
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  margin-left: 0.35rem;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.lock-indicator-badge svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* Locked Card Placeholder */
+.locked-preview-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  background: var(--bg-card-secondary);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-style: italic;
+  user-select: none;
+  transition: all var(--transition-fast);
+}
+
+.note-card:hover .locked-preview-placeholder {
+  border-color: rgba(245, 158, 11, 0.4);
+  color: var(--text-secondary);
+  background: rgba(245, 158, 11, 0.04);
+}
+
+.locked-preview-placeholder svg {
+  width: 16px;
+  height: 16px;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+/* PIN Modal Dialog */
+.modal-pin-dialog {
+  max-width: 380px;
+  width: 100%;
+  border-radius: var(--radius-xl);
+}
+
+.badge-locked {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #f59e0b !important;
+}
+
+.pin-modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 1.75rem 1.25rem;
+  gap: 1.25rem;
+}
+
+.pin-modal-desc {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Digits Display Group */
+.pin-display-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.pin-digits-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.85rem;
+  width: 100%;
+}
+
+.pin-digit-input {
+  width: 52px;
+  height: 58px;
+  background: var(--bg-input);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono, monospace);
+  font-size: 1.75rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-primary);
+  outline: none;
+  caret-color: var(--color-primary);
+  transition: all var(--transition-fast);
+  -webkit-text-security: disc;
+}
+
+.pin-digit-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+  background: var(--bg-input-focus);
+  transform: translateY(-2px);
+}
+
+.pin-digit-input.filled {
+  border-color: rgba(99, 102, 241, 0.6);
+  background: var(--bg-input-focus);
+}
+
+.pin-error-text {
+  font-size: 0.8125rem;
+  color: #ef4444;
+  font-weight: 600;
+  text-align: center;
+  min-height: 1.2rem;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+/* Shake Animation for Wrong PIN */
+@keyframes pinShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+
+.pin-shake {
+  animation: pinShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.pin-shake .pin-digit-input {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25) !important;
+}
+
+/* Numeric Keypad */
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+  width: 100%;
+  max-width: 280px;
+  margin-top: 0.25rem;
+}
+
+.pin-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 52px;
+  font-family: var(--font-main);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-card-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.12s ease;
+}
+
+.pin-key:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.pin-key:active {
+  transform: translateY(1px) scale(0.96);
+  background: var(--bg-active);
+}
+
+.pin-key-action {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.pin-key-action svg {
+  width: 18px;
+  height: 18px;
+}
+
+.pin-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+}
+
+.pin-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-left: auto;
+}
+
+.pin-footer-center {
+  justify-content: center;
+  gap: 0.75rem;
+}
