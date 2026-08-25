@@ -512,6 +512,9 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
 
     close(modalElement) {
       if (!modalElement) return;
+      if (modalElement.contains(document.activeElement)) {
+        document.activeElement.blur();
+      }
       modalElement.classList.remove('open');
       modalElement.setAttribute('aria-hidden', 'true');
       
