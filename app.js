@@ -5,6 +5,9 @@
 
 import { 
   signInWithGoogle, 
+  signInWithEmail,
+  signUpWithEmail,
+  resetPassword,
   signOutUser, 
   onAuthStatusChange, 
   getStoredFirebaseConfig, 
@@ -147,6 +150,10 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     targetUnlockNoteId: null,
     targetUnlockAction: 'preview', // 'preview' | 'edit'
 
+    // Auth UI state
+    authMode: 'signin', // 'signin' | 'signup'
+    authPasswordVisible: false,
+
     // Confirm modal callback
     confirmCallback: null
   };
@@ -156,6 +163,24 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     html: document.documentElement,
     appLayout: document.getElementById('appLayout'),
     authScreen: document.getElementById('authScreen'),
+    authTabSignIn: document.getElementById('authTabSignIn'),
+    authTabSignUp: document.getElementById('authTabSignUp'),
+    authMainTitle: document.getElementById('authMainTitle'),
+    authMainSubtitle: document.getElementById('authMainSubtitle'),
+    authErrorAlert: document.getElementById('authErrorAlert'),
+    authErrorText: document.getElementById('authErrorText'),
+    emailAuthForm: document.getElementById('emailAuthForm'),
+    authNameGroup: document.getElementById('authNameGroup'),
+    authNameInput: document.getElementById('authNameInput'),
+    authEmailInput: document.getElementById('authEmailInput'),
+    authPasswordInput: document.getElementById('authPasswordInput'),
+    btnForgotPassword: document.getElementById('btnForgotPassword'),
+    togglePasswordVisibilityBtn: document.getElementById('togglePasswordVisibilityBtn'),
+    btnEmailAuthSubmit: document.getElementById('btnEmailAuthSubmit'),
+    emailAuthSpinnerWrapper: document.getElementById('emailAuthSpinnerWrapper'),
+    emailAuthBtnText: document.getElementById('emailAuthBtnText'),
+    authSwitchPromptText: document.getElementById('authSwitchPromptText'),
+    btnSwitchAuthMode: document.getElementById('btnSwitchAuthMode'),
     btnGoogleSignIn: document.getElementById('btnGoogleSignIn'),
     googleIconWrapper: document.getElementById('googleIconWrapper'),
     googleSpinnerWrapper: document.getElementById('googleSpinnerWrapper'),
@@ -1238,7 +1263,11 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       DOM.settingsUserDisplay.textContent = displayName;
       DOM.settingsUserEmail.textContent = user.email || 'user@gmail.com';
 
-      DOM.sidebarUserStatus.textContent = 'Google Account';
+      if (user.provider === 'password') {
+        DOM.sidebarUserStatus.textContent = 'Email Account';
+      } else {
+        DOM.sidebarUserStatus.textContent = 'Google Account';
+      }
 
       // Profile Avatar Image handling
       if (user.photoURL) {
@@ -1258,6 +1287,141 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
         DOM.settingsAvatarInitial.textContent = initial;
         DOM.settingsAvatarInitial.style.display = 'block';
         DOM.settingsAvatarImg.style.display = 'none';
+      }
+    },
+
+    setAuthMode(mode = 'signin') {
+      state.authMode = mode;
+      DOM.authErrorAlert.style.display = 'none';
+
+      if (mode === 'signup') {
+        DOM.authTabSignUp.classList.add('active');
+        DOM.authTabSignUp.setAttribute('aria-selected', 'true');
+        DOM.authTabSignIn.classList.remove('active');
+        DOM.authTabSignIn.setAttribute('aria-selected', 'false');
+
+        DOM.authMainTitle.textContent = 'Create an Account';
+        DOM.authMainSubtitle.textContent = 'Sign up with your Gmail/email & password to get started with NoteFlow.';
+        DOM.authNameGroup.style.display = 'flex';
+        DOM.btnForgotPassword.style.display = 'none';
+        DOM.emailAuthBtnText.textContent = 'Create Account';
+        if (DOM.authSwitchPromptText) DOM.authSwitchPromptText.textContent = 'Already have an account?';
+        if (DOM.btnSwitchAuthMode) DOM.btnSwitchAuthMode.textContent = 'Sign In';
+      } else {
+        DOM.authTabSignIn.classList.add('active');
+        DOM.authTabSignIn.setAttribute('aria-selected', 'true');
+        DOM.authTabSignUp.classList.remove('active');
+        DOM.authTabSignUp.setAttribute('aria-selected', 'false');
+
+        DOM.authMainTitle.textContent = 'Welcome Back';
+        DOM.authMainSubtitle.textContent = 'Sign in with your Gmail/email & password or Google account.';
+        DOM.authNameGroup.style.display = 'none';
+        DOM.btnForgotPassword.style.display = 'inline-block';
+        DOM.emailAuthBtnText.textContent = 'Sign In';
+        if (DOM.authSwitchPromptText) DOM.authSwitchPromptText.textContent = "Don't have an account yet?";
+        if (DOM.btnSwitchAuthMode) DOM.btnSwitchAuthMode.textContent = 'Create Account';
+      }
+    },
+
+    togglePasswordVisibility() {
+      state.authPasswordVisible = !state.authPasswordVisible;
+      const isVisible = state.authPasswordVisible;
+      DOM.authPasswordInput.type = isVisible ? 'text' : 'password';
+
+      const eyeOpen = DOM.togglePasswordVisibilityBtn.querySelector('.icon-eye-open');
+      const eyeClosed = DOM.togglePasswordVisibilityBtn.querySelector('.icon-eye-closed');
+      if (eyeOpen && eyeClosed) {
+        eyeOpen.style.display = isVisible ? 'none' : 'block';
+        eyeClosed.style.display = isVisible ? 'block' : 'none';
+      }
+    },
+
+    async handleEmailAuth(e) {
+      if (e) e.preventDefault();
+      DOM.authErrorAlert.style.display = 'none';
+
+      const email = DOM.authEmailInput.value.trim();
+      const password = DOM.authPasswordInput.value;
+      const name = DOM.authNameInput ? DOM.authNameInput.value.trim() : '';
+
+      if (!email) {
+        this.showAuthError('Please enter your email or Gmail address.');
+        DOM.authEmailInput.focus();
+        return;
+      }
+
+      if (!password || password.length < 6) {
+        this.showAuthError('Password must be at least 6 characters.');
+        DOM.authPasswordInput.focus();
+        return;
+      }
+
+      DOM.emailAuthSpinnerWrapper.style.display = 'inline-flex';
+      DOM.btnEmailAuthSubmit.disabled = true;
+      DOM.emailAuthBtnText.textContent = state.authMode === 'signup' ? 'Creating Account...' : 'Signing In...';
+
+      try {
+        let result;
+        if (state.authMode === 'signup') {
+          result = await signUpWithEmail(email, password, name);
+        } else {
+          result = await signInWithEmail(email, password);
+        }
+
+        if (result.success) {
+          DOM.emailAuthForm.reset();
+          this.setUser(result.user);
+          Toast.show(`Welcome, ${result.user.displayName}! 🎉`, 'success');
+        } else {
+          this.showAuthError(result.message || 'Authentication failed. Please check your credentials.', result.code);
+        }
+      } catch (err) {
+        console.error('Email Auth error:', err);
+        this.showAuthError('An unexpected error occurred. Please try again.');
+      } finally {
+        DOM.emailAuthSpinnerWrapper.style.display = 'none';
+        DOM.btnEmailAuthSubmit.disabled = false;
+        DOM.emailAuthBtnText.textContent = state.authMode === 'signup' ? 'Create Account' : 'Sign In';
+      }
+    },
+
+    showAuthError(message, code = null) {
+      if (code === 'auth/invalid-credential' || code === 'auth/user-not-found' || code === 'auth/wrong-password') {
+        DOM.authErrorText.innerHTML = `Invalid email or password. Don't have an account? <button type="button" class="auth-error-link" id="authErrorCreateAccountLink">Create Account</button>`;
+        const link = document.getElementById('authErrorCreateAccountLink');
+        if (link) {
+          link.onclick = (e) => {
+            e.preventDefault();
+            this.setAuthMode('signup');
+          };
+        }
+      } else {
+        DOM.authErrorText.textContent = message;
+      }
+      DOM.authErrorAlert.style.display = 'flex';
+      DOM.emailAuthForm.classList.remove('pin-shake');
+      void DOM.emailAuthForm.offsetWidth;
+      DOM.emailAuthForm.classList.add('pin-shake');
+    },
+
+    async handleForgotPassword() {
+      const email = DOM.authEmailInput.value.trim();
+      if (!email) {
+        this.showAuthError('Please enter your email address above to receive a password reset link.');
+        DOM.authEmailInput.focus();
+        return;
+      }
+
+      try {
+        const result = await resetPassword(email);
+        if (result.success) {
+          Toast.show(`Password reset link sent to ${email}! ✉️`, 'success');
+          DOM.authErrorAlert.style.display = 'none';
+        } else {
+          this.showAuthError(result.message || 'Could not send password reset email.');
+        }
+      } catch (err) {
+        this.showAuthError('Failed to send reset link.');
       }
     },
 
@@ -1766,7 +1930,15 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     },
 
     bindEvents() {
-      // Auth Actions
+      // Auth Actions (Email / Gmail & Google)
+      DOM.authTabSignIn.addEventListener('click', () => this.setAuthMode('signin'));
+      DOM.authTabSignUp.addEventListener('click', () => this.setAuthMode('signup'));
+      if (DOM.btnSwitchAuthMode) {
+        DOM.btnSwitchAuthMode.addEventListener('click', () => this.setAuthMode(state.authMode === 'signin' ? 'signup' : 'signin'));
+      }
+      DOM.emailAuthForm.addEventListener('submit', (e) => this.handleEmailAuth(e));
+      DOM.togglePasswordVisibilityBtn.addEventListener('click', () => this.togglePasswordVisibility());
+      DOM.btnForgotPassword.addEventListener('click', () => this.handleForgotPassword());
       DOM.btnGoogleSignIn.addEventListener('click', () => this.handleGoogleSignIn());
       DOM.authOpenConfigBtn.addEventListener('click', () => {
         Modal.open(DOM.settingsModal);

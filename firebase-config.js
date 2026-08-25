@@ -8,6 +8,10 @@ import {
   getAuth,
   signInWithPopup,
   GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  sendPasswordResetEmail,
   signOut,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -138,6 +142,132 @@ export async function signInWithGoogle() {
 }
 
 /**
+ * Sign in using Email and Password
+ */
+export async function signInWithEmail(email, password) {
+  try {
+    if (!firebaseAuth) {
+      initFirebaseAuth();
+    }
+
+    const result = await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
+    const user = result.user;
+
+    return {
+      success: true,
+      user: {
+        uid: user.uid,
+        displayName: user.displayName || user.email.split('@')[0] || 'User',
+        email: user.email,
+        photoURL: user.photoURL || null,
+        provider: 'password'
+      }
+    };
+  } catch (error) {
+    console.error('Email sign-in failed:', error);
+    let friendlyMessage = error.message;
+
+    if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+      friendlyMessage = 'Invalid email or password. Please check your credentials and try again.';
+    } else if (error.code === 'auth/invalid-email') {
+      friendlyMessage = 'Please enter a valid email address.';
+    } else if (error.code === 'auth/user-disabled') {
+      friendlyMessage = 'This account has been disabled by the administrator.';
+    } else if (error.code === 'auth/too-many-requests') {
+      friendlyMessage = 'Access temporarily blocked due to multiple failed login attempts. Please try again later.';
+    }
+
+    return {
+      success: false,
+      code: error.code,
+      message: friendlyMessage
+    };
+  }
+}
+
+/**
+ * Create new account using Email, Password and optional Display Name
+ */
+export async function signUpWithEmail(email, password, displayName = '') {
+  try {
+    if (!firebaseAuth) {
+      initFirebaseAuth();
+    }
+
+    const result = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password);
+    const user = result.user;
+
+    const finalName = displayName.trim() || email.split('@')[0] || 'User';
+
+    // Update Firebase Auth profile displayName if provided
+    try {
+      await updateProfile(user, { displayName: finalName });
+    } catch (profileErr) {
+      console.warn('Could not update user profile name:', profileErr);
+    }
+
+    return {
+      success: true,
+      user: {
+        uid: user.uid,
+        displayName: finalName,
+        email: user.email,
+        photoURL: user.photoURL || null,
+        provider: 'password'
+      }
+    };
+  } catch (error) {
+    console.error('Email sign-up failed:', error);
+    let friendlyMessage = error.message;
+
+    if (error.code === 'auth/email-already-in-use') {
+      friendlyMessage = 'An account with this email address already exists. Please sign in instead.';
+    } else if (error.code === 'auth/weak-password') {
+      friendlyMessage = 'Password is too weak. Please use at least 6 characters.';
+    } else if (error.code === 'auth/invalid-email') {
+      friendlyMessage = 'Please enter a valid email address.';
+    } else if (error.code === 'auth/operation-not-allowed') {
+      friendlyMessage = 'Email/Password sign-in is not enabled in your Firebase Console. Please enable it in Authentication > Sign-in method.';
+    }
+
+    return {
+      success: false,
+      code: error.code,
+      message: friendlyMessage
+    };
+  }
+}
+
+/**
+ * Send password reset email
+ */
+export async function resetPassword(email) {
+  try {
+    if (!firebaseAuth) {
+      initFirebaseAuth();
+    }
+
+    await sendPasswordResetEmail(firebaseAuth, email.trim());
+    return { success: true };
+  } catch (error) {
+    console.error('Password reset failed:', error);
+    let friendlyMessage = error.message;
+
+    if (error.code === 'auth/user-not-found') {
+      friendlyMessage = 'No account was found with that email address.';
+    } else if (error.code === 'auth/invalid-email') {
+      friendlyMessage = 'Please enter a valid email address.';
+    }
+
+    return {
+      success: false,
+      code: error.code,
+      message: friendlyMessage
+    };
+  }
+}
+
+/**
  * Sign out current authenticated user
  */
 export async function signOutUser() {
@@ -170,13 +300,14 @@ export function onAuthStatusChange(callback) {
     if (user) {
       callback({
         uid: user.uid,
-        displayName: user.displayName || 'Google User',
+        displayName: user.displayName || (user.email ? user.email.split('@')[0] : 'User'),
         email: user.email,
         photoURL: user.photoURL,
-        provider: 'google'
+        provider: user.providerData && user.providerData[0] ? user.providerData[0].providerId : 'password'
       });
     } else {
       callback(null);
     }
   });
 }
+
