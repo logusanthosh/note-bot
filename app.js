@@ -16,6 +16,7 @@ import {
   DEFAULT_FIREBASE_CONFIG,
   initFirebaseAuth
 } from './firebase-config.js';
+import { FirestoreSync, SYNC_STATUS } from './firestore.js';
 
 (() => {
   'use strict';
@@ -169,6 +170,8 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     authMainSubtitle: document.getElementById('authMainSubtitle'),
     authErrorAlert: document.getElementById('authErrorAlert'),
     authErrorText: document.getElementById('authErrorText'),
+    authSuccessAlert: document.getElementById('authSuccessAlert'),
+    authSuccessText: document.getElementById('authSuccessText'),
     emailAuthForm: document.getElementById('emailAuthForm'),
     authNameGroup: document.getElementById('authNameGroup'),
     authNameInput: document.getElementById('authNameInput'),
@@ -228,6 +231,18 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     sidebarNewNoteBtn: document.getElementById('sidebarNewNoteBtn'),
     topbarNewNoteBtn: document.getElementById('topbarNewNoteBtn'),
     mobileFabBtn: document.getElementById('mobileFabBtn'),
+
+    // Cloud Sync Status Indicator
+    syncStatusIndicator: document.getElementById('syncStatusIndicator'),
+    syncStatusIcon: document.getElementById('syncStatusIcon'),
+    syncStatusText: document.getElementById('syncStatusText'),
+    btnSyncNow: document.getElementById('btnSyncNow'),
+
+    // Settings Modal Sync Card
+    settingsSyncBadge: document.getElementById('settingsSyncBadge'),
+    settingsSyncStatusText: document.getElementById('settingsSyncStatusText'),
+    settingsSyncSubText: document.getElementById('settingsSyncSubText'),
+    btnSettingsForceSync: document.getElementById('btnSettingsForceSync'),
 
     // Search & Filter
     searchInput: document.getElementById('searchInput'),
@@ -971,7 +986,7 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       if (state.editingNoteId) {
         const noteIndex = state.notes.findIndex(n => n.id === state.editingNoteId);
         if (noteIndex !== -1) {
-          state.notes[noteIndex] = {
+          const updatedNote = {
             ...state.notes[noteIndex],
             title,
             content,
@@ -983,7 +998,14 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
             pinCode: state.editorPinCode || null,
             updatedAt: now
           };
+          state.notes[noteIndex] = updatedNote;
           Storage.saveNotes(state.notes);
+
+          // Sync to Cloud Firestore
+          if (state.currentUser) {
+            FirestoreSync.saveNote(state.currentUser.uid, updatedNote);
+          }
+
           Toast.show('Note updated successfully!', 'success');
         }
       } else {
@@ -999,10 +1021,17 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
           pinCode: state.editorPinCode || null,
           isTrash: false,
           createdAt: now,
-          updatedAt: now
+          updatedAt: now,
+          deletedAt: null
         };
         state.notes.unshift(newNote);
         Storage.saveNotes(state.notes);
+
+        // Sync to Cloud Firestore
+        if (state.currentUser) {
+          FirestoreSync.saveNote(state.currentUser.uid, newNote);
+        }
+
         Toast.show('Note created successfully!', 'success');
       }
 
@@ -1019,6 +1048,11 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       note.updatedAt = Date.now();
       Storage.saveNotes(state.notes);
 
+      // Sync to Cloud Firestore
+      if (state.currentUser) {
+        FirestoreSync.saveNote(state.currentUser.uid, note);
+      }
+
       Toast.show(note.isPinned ? 'Note pinned to top 📌' : 'Note unpinned', 'info');
       App.render();
     },
@@ -1032,6 +1066,11 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       note.updatedAt = Date.now();
       Storage.saveNotes(state.notes);
 
+      // Sync to Cloud Firestore
+      if (state.currentUser) {
+        FirestoreSync.saveNote(state.currentUser.uid, note);
+      }
+
       Toast.show(note.isFavorite ? 'Added to favorites ⭐' : 'Removed from favorites', 'info');
       App.render();
     },
@@ -1042,12 +1081,25 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       if (!note) return;
 
       note.isTrash = true;
+      note.deletedAt = Date.now();
       note.updatedAt = Date.now();
       Storage.saveNotes(state.notes);
 
+      // Sync to Cloud Firestore
+      if (state.currentUser) {
+        FirestoreSync.saveNote(state.currentUser.uid, note);
+      }
+
       Toast.show('Note moved to trash 🗑️', 'warning', () => {
         note.isTrash = false;
+        note.deletedAt = null;
+        note.updatedAt = Date.now();
         Storage.saveNotes(state.notes);
+
+        if (state.currentUser) {
+          FirestoreSync.saveNote(state.currentUser.uid, note);
+        }
+
         Toast.show('Note restored from trash!', 'success');
         App.render();
       });
@@ -1061,8 +1113,14 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       if (!note) return;
 
       note.isTrash = false;
+      note.deletedAt = null;
       note.updatedAt = Date.now();
       Storage.saveNotes(state.notes);
+
+      // Sync to Cloud Firestore
+      if (state.currentUser) {
+        FirestoreSync.saveNote(state.currentUser.uid, note);
+      }
 
       Toast.show('Note restored successfully! ✨', 'success');
       App.render();
@@ -1081,6 +1139,12 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
         onProceed: () => {
           state.notes = state.notes.filter(n => n.id !== noteId);
           Storage.saveNotes(state.notes);
+
+          // Sync deletion to Cloud Firestore
+          if (state.currentUser) {
+            FirestoreSync.deleteNote(state.currentUser.uid, noteId);
+          }
+
           Toast.show('Note permanently deleted.', 'danger');
           App.render();
         }
@@ -1088,7 +1152,8 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     },
 
     emptyTrash() {
-      const trashCount = state.notes.filter(n => n.isTrash).length;
+      const trashNotes = state.notes.filter(n => n.isTrash);
+      const trashCount = trashNotes.length;
       if (trashCount === 0) {
         Toast.show('Trash is already empty.', 'info');
         return;
@@ -1100,8 +1165,15 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
         proceedText: 'Empty Trash',
         isDanger: true,
         onProceed: () => {
+          const trashIds = trashNotes.map(n => n.id);
           state.notes = state.notes.filter(n => !n.isTrash);
           Storage.saveNotes(state.notes);
+
+          // Batch delete from Cloud Firestore
+          if (state.currentUser) {
+            FirestoreSync.emptyTrashBatch(state.currentUser.uid, trashIds);
+          }
+
           Toast.show('Trash emptied successfully.', 'danger');
           App.render();
         }
@@ -1220,6 +1292,49 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       }
     },
 
+    updateSyncStatusUI(status, message = '') {
+      if (!DOM.syncStatusIndicator) return;
+
+      // Remove old status classes
+      DOM.syncStatusIndicator.classList.remove('status-synced', 'status-syncing', 'status-offline', 'status-error');
+      DOM.syncStatusIndicator.classList.add(`status-${status}`);
+
+      const iconSynced = DOM.syncStatusIcon ? DOM.syncStatusIcon.querySelector('.icon-cloud-synced') : null;
+      const iconSyncing = DOM.syncStatusIcon ? DOM.syncStatusIcon.querySelector('.icon-cloud-syncing') : null;
+      const iconOffline = DOM.syncStatusIcon ? DOM.syncStatusIcon.querySelector('.icon-cloud-offline') : null;
+      const iconError = DOM.syncStatusIcon ? DOM.syncStatusIcon.querySelector('.icon-cloud-error') : null;
+
+      if (iconSynced) iconSynced.style.display = status === 'synced' ? 'block' : 'none';
+      if (iconSyncing) iconSyncing.style.display = status === 'syncing' ? 'block' : 'none';
+      if (iconOffline) iconOffline.style.display = status === 'offline' ? 'block' : 'none';
+      if (iconError) iconError.style.display = status === 'error' ? 'block' : 'none';
+
+      let statusLabel = '☁️ Synced';
+      if (status === 'syncing') statusLabel = '🔄 Syncing...';
+      else if (status === 'offline') statusLabel = '📴 Offline';
+      else if (status === 'error') statusLabel = '⚠️ Sync Error';
+
+      if (DOM.syncStatusText) DOM.syncStatusText.textContent = statusLabel;
+      DOM.syncStatusIndicator.title = message || `Firestore Cloud Sync: ${statusLabel}`;
+
+      // Update Settings Modal Sync Card
+      if (DOM.settingsSyncBadge) {
+        DOM.settingsSyncBadge.className = `badge-subtle badge-sync-status status-${status}`;
+        DOM.settingsSyncBadge.textContent = statusLabel;
+      }
+      if (DOM.settingsSyncStatusText) {
+        if (status === 'synced') {
+          DOM.settingsSyncStatusText.textContent = 'All notes are securely synchronized with Cloud Firestore.';
+        } else if (status === 'syncing') {
+          DOM.settingsSyncStatusText.textContent = message || 'Synchronizing notes with Cloud Firestore...';
+        } else if (status === 'offline') {
+          DOM.settingsSyncStatusText.textContent = 'Working in offline mode. Changes saved locally.';
+        } else if (status === 'error') {
+          DOM.settingsSyncStatusText.textContent = message || 'Sync issue detected. Local cache remains active.';
+        }
+      }
+    },
+
     setUser(user) {
       state.currentUser = user;
       state.userName = user.displayName || 'Sandy';
@@ -1231,13 +1346,39 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       // Update User Profile UI
       this.updateUserProfileUI();
 
-      // Load user notes
+      // 1. Instant load from LocalStorage cache (instant startup / offline fallback)
       state.notes = Storage.loadNotes();
       this.render();
+
+      // 2. Subscribe to live Firestore Sync connection state
+      FirestoreSync.onStatusChange((status, message) => {
+        this.updateSyncStatusUI(status, message);
+      });
+
+      // 3. Connect to Cloud Firestore with real-time onSnapshot listener
+      FirestoreSync.startSync(user.uid, {
+        onNotesReceived: (cloudNotes, isInitial) => {
+          // If cloud has 0 notes on first login but local has existing notes, migrate local notes to cloud
+          if (isInitial && cloudNotes.length === 0 && state.notes.length > 0) {
+            console.log('Initial cloud sync: Migrating local notes to Cloud Firestore...');
+            FirestoreSync.batchUploadNotes(user.uid, state.notes);
+            return;
+          }
+
+          state.notes = cloudNotes;
+          Storage.saveNotes(state.notes);
+          this.render();
+        },
+        onError: (err) => {
+          console.warn('Firestore cloud sync notice:', err);
+        }
+      });
     },
 
     showAuthScreen() {
       state.currentUser = null;
+      FirestoreSync.stopSync();
+      this.updateSyncStatusUI(SYNC_STATUS.OFFLINE, 'Sign in to enable Cloud Sync');
       DOM.authScreen.classList.remove('hidden');
 
       // Update Firebase connection status badge on login screen
@@ -1293,6 +1434,7 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     setAuthMode(mode = 'signin') {
       state.authMode = mode;
       DOM.authErrorAlert.style.display = 'none';
+      if (DOM.authSuccessAlert) DOM.authSuccessAlert.style.display = 'none';
 
       if (mode === 'signup') {
         DOM.authTabSignUp.classList.add('active');
@@ -1339,6 +1481,7 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     async handleEmailAuth(e) {
       if (e) e.preventDefault();
       DOM.authErrorAlert.style.display = 'none';
+      if (DOM.authSuccessAlert) DOM.authSuccessAlert.style.display = 'none';
 
       const email = DOM.authEmailInput.value.trim();
       const password = DOM.authPasswordInput.value;
@@ -1386,6 +1529,7 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     },
 
     showAuthError(message, code = null) {
+      if (DOM.authSuccessAlert) DOM.authSuccessAlert.style.display = 'none';
       if (code === 'auth/invalid-credential' || code === 'auth/user-not-found' || code === 'auth/wrong-password') {
         DOM.authErrorText.innerHTML = `Invalid email or password. Don't have an account? <button type="button" class="auth-error-link" id="authErrorCreateAccountLink">Create Account</button>`;
         const link = document.getElementById('authErrorCreateAccountLink');
@@ -1405,6 +1549,7 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     },
 
     async handleForgotPassword() {
+      if (DOM.authSuccessAlert) DOM.authSuccessAlert.style.display = 'none';
       const email = DOM.authEmailInput.value.trim();
       if (!email) {
         this.showAuthError('Please enter your email address above to receive a password reset link.');
@@ -1415,6 +1560,10 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       try {
         const result = await resetPassword(email);
         if (result.success) {
+          if (DOM.authSuccessAlert && DOM.authSuccessText) {
+            DOM.authSuccessText.textContent = `Password reset link sent to ${email}! Please check your inbox (and spam folder). ✉️`;
+            DOM.authSuccessAlert.style.display = 'flex';
+          }
           Toast.show(`Password reset link sent to ${email}! ✉️`, 'success');
           DOM.authErrorAlert.style.display = 'none';
         } else {
@@ -1457,6 +1606,7 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
         proceedText: 'Sign Out',
         isDanger: false,
         onProceed: async () => {
+          FirestoreSync.stopSync();
           await signOutUser();
           Modal.close(DOM.settingsModal);
           this.showAuthScreen();
@@ -2173,6 +2323,12 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
             });
 
             Storage.saveNotes(state.notes);
+
+            // Sync imported notes to Cloud Firestore
+            if (state.currentUser) {
+              FirestoreSync.batchUploadNotes(state.currentUser.uid, state.notes);
+            }
+
             App.render();
             Toast.show(`Successfully imported ${addedCount} new notes! 🎉`, 'success');
             Modal.close(DOM.settingsModal);
@@ -2200,6 +2356,12 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
               }
             });
             Storage.saveNotes(state.notes);
+
+            // Sync demo notes to Cloud Firestore
+            if (state.currentUser) {
+              FirestoreSync.batchUploadNotes(state.currentUser.uid, state.notes);
+            }
+
             App.render();
             Toast.show('Demo notes restored! 🚀', 'success');
             Modal.close(DOM.settingsModal);
@@ -2216,10 +2378,14 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       DOM.resetAllDataBtn.addEventListener('click', () => {
         Modal.confirm({
           title: 'Reset All Data?',
-          message: 'WARNING: This will permanently wipe all notes, custom settings, and preferences from LocalStorage.',
+          message: 'WARNING: This will permanently wipe all notes, custom settings, and preferences from LocalStorage and Cloud.',
           proceedText: 'Wipe Everything',
           isDanger: true,
-          onProceed: () => {
+          onProceed: async () => {
+            if (state.currentUser) {
+              const allIds = state.notes.map(n => n.id);
+              await FirestoreSync.emptyTrashBatch(state.currentUser.uid, allIds);
+            }
             localStorage.clear();
             state.notes = [];
             state.activeView = 'all';
@@ -2234,6 +2400,57 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
           }
         });
       });
+
+      // Cloud Firestore Sync Triggers
+      if (DOM.btnSyncNow) {
+        DOM.btnSyncNow.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (!state.currentUser) {
+            Toast.show('Please sign in to sync notes.', 'warning');
+            return;
+          }
+          const res = await FirestoreSync.forceSync(state.currentUser.uid);
+          if (res.success) {
+            state.notes = res.notes;
+            Storage.saveNotes(state.notes);
+            App.render();
+            Toast.show('Notes refreshed from Cloud Firestore! ☁️', 'success');
+          } else {
+            Toast.show(res.message || 'Sync failed. Please check internet connection.', 'warning');
+          }
+        });
+      }
+
+      if (DOM.syncStatusIndicator) {
+        DOM.syncStatusIndicator.addEventListener('click', async () => {
+          if (!state.currentUser) return;
+          const res = await FirestoreSync.forceSync(state.currentUser.uid);
+          if (res.success) {
+            state.notes = res.notes;
+            Storage.saveNotes(state.notes);
+            App.render();
+            Toast.show('Notes refreshed from Cloud Firestore! ☁️', 'success');
+          }
+        });
+      }
+
+      if (DOM.btnSettingsForceSync) {
+        DOM.btnSettingsForceSync.addEventListener('click', async () => {
+          if (!state.currentUser) {
+            Toast.show('Please sign in to sync notes.', 'warning');
+            return;
+          }
+          const res = await FirestoreSync.forceSync(state.currentUser.uid);
+          if (res.success) {
+            state.notes = res.notes;
+            Storage.saveNotes(state.notes);
+            App.render();
+            Toast.show('Cloud Firestore synchronization complete! ☁️', 'success');
+          } else {
+            Toast.show(res.message || 'Sync failed.', 'warning');
+          }
+        });
+      }
 
       // Confirmation Modal Action Buttons
       DOM.confirmProceedBtn.addEventListener('click', () => {

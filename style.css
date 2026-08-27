@@ -372,6 +372,28 @@ body {
   flex-shrink: 0;
 }
 
+/* Auth Success Alert Banner */
+.auth-success-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #10b981;
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.4;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.auth-success-alert svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
 /* Email & Password Form */
 .auth-email-form {
   display: flex;
@@ -1085,7 +1107,91 @@ html[data-theme="light"] .moon-icon {
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.85rem;
+}
+
+/* --- Cloud Firestore Sync Status Indicator --- */
+.sync-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(8px);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+  cursor: default;
+  user-select: none;
+}
+
+.sync-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.sync-status-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.sync-status-text {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Status variants */
+.sync-status-indicator.status-synced {
+  color: var(--color-success);
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.08);
+}
+.sync-status-indicator.status-syncing {
+  color: var(--color-warning);
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.08);
+}
+.sync-status-indicator.status-offline {
+  color: var(--text-muted);
+  border-color: var(--border-color);
+  background: var(--bg-surface);
+}
+.sync-status-indicator.status-error {
+  color: var(--color-danger);
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.btn-sync-refresh {
+  background: transparent;
+  border: none;
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  opacity: 0.75;
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.btn-sync-refresh:hover {
+  opacity: 1;
+  transform: rotate(90deg);
+}
+
+.btn-sync-refresh svg {
+  width: 13px;
+  height: 13px;
 }
 
 /* Statistics Pills */
@@ -2336,6 +2442,60 @@ html[data-theme="light"] .moon-icon {
   gap: 0.5rem;
 }
 
+/* Settings Modal Sync Card */
+.sync-settings-card {
+  background: var(--bg-card-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 0.9rem 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sync-settings-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.sync-settings-status {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sync-settings-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.badge-sync-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.badge-sync-status.status-synced {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+}
+.badge-sync-status.status-syncing {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
+}
+.badge-sync-status.status-offline {
+  background: var(--bg-surface);
+  color: var(--text-muted);
+}
+.badge-sync-status.status-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-danger);
+}
+
 .settings-about {
   background: var(--bg-input);
   border: 1px solid var(--border-color);
@@ -2443,7 +2603,7 @@ html[data-theme="light"] .moon-icon {
   position: fixed;
   bottom: 1.5rem;
   right: 1.5rem;
-  z-index: 200;
+  z-index: 9999;
   display: flex;
   flex-direction: column;
   gap: 0.65rem;

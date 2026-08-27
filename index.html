@@ -71,6 +71,16 @@
           <span id="authErrorText">Invalid email or password.</span>
         </div>
 
+        <!-- Success Alert Banner -->
+        <div class="auth-success-alert" id="authSuccessAlert" style="display: none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <span id="authSuccessText">Password reset link sent to your email!</span>
+        </div>
+
         <!-- Email & Password Form -->
         <form class="auth-email-form" id="emailAuthForm" autocomplete="on">
           <!-- Full Name field (Only in Sign Up mode) -->
@@ -93,7 +103,8 @@
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                 <polyline points="22,6 12,13 2,6"></polyline>
               </svg>
-              <input type="email" id="authEmailInput" class="auth-form-input" placeholder="name@gmail.com" required autocomplete="email">
+              <input type="email" id="authEmailInput" class="auth-form-input" placeholder="name@gmail.com" required
+                autocomplete="email">
             </div>
           </div>
 
@@ -108,14 +119,19 @@
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
               </svg>
-              <input type="password" id="authPasswordInput" class="auth-form-input" placeholder="••••••••" required autocomplete="current-password" minlength="6">
-              <button type="button" class="auth-toggle-pwd-btn" id="togglePasswordVisibilityBtn" title="Show/Hide Password" aria-label="Toggle password visibility">
+              <input type="password" id="authPasswordInput" class="auth-form-input" placeholder="••••••••" required
+                autocomplete="current-password" minlength="6">
+              <button type="button" class="auth-toggle-pwd-btn" id="togglePasswordVisibilityBtn"
+                title="Show/Hide Password" aria-label="Toggle password visibility">
                 <svg class="icon-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                   <circle cx="12" cy="12" r="3"></circle>
                 </svg>
-                <svg class="icon-eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <svg class="icon-eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  style="display: none;">
+                  <path
+                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
+                  </path>
                   <line x1="1" y1="1" x2="23" y2="23"></line>
                 </svg>
               </button>
@@ -454,6 +470,42 @@
         </div>
 
         <div class="topbar-right">
+          <!-- Cloud Firestore Sync Status Indicator -->
+          <div class="sync-status-indicator status-synced" id="syncStatusIndicator"
+            title="Firestore Cloud Sync: Synced">
+            <span class="sync-status-icon" id="syncStatusIcon">
+              <svg class="icon-cloud-synced" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+                <polyline points="9 13 12 16 16 11"></polyline>
+              </svg>
+              <svg class="icon-cloud-syncing animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+              </svg>
+              <svg class="icon-cloud-offline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                <path d="M22.61 16.95A5 5 0 0 0 18 10h-1.26a8 8 0 0 0-7.05-6M5 5a8 8 0 0 0-4 7h1a5 5 0 0 0 4.9 4">
+                </path>
+                <line x1="2" y1="2" x2="22" y2="22"></line>
+              </svg>
+              <svg class="icon-cloud-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </span>
+            <span class="sync-status-text" id="syncStatusText">☁️ Synced</span>
+            <button type="button" class="btn-sync-refresh" id="btnSyncNow" title="Sync now with Cloud Firestore"
+              aria-label="Sync Now">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+              </svg>
+            </button>
+          </div>
+
           <!-- Statistics Pills -->
           <div class="stats-pill-container" id="statsBar">
             <div class="stat-pill">
@@ -478,7 +530,7 @@
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            <span>+ New Note</span>
+            <span>New Note</span>
           </button>
         </div>
       </header>
@@ -852,6 +904,31 @@
           </div>
         </div>
 
+        <!-- Firestore Cloud Sync Section -->
+        <div class="settings-section">
+          <div class="section-title-with-badge">
+            <h3 class="settings-section-title">Cloud Firestore Sync</h3>
+            <span class="badge-subtle badge-sync-status" id="settingsSyncBadge">Synced</span>
+          </div>
+          <p class="settings-row-desc mb-2">Real-time multi-device cloud synchronization & offline cache powered by
+            Google Cloud Firestore.</p>
+
+          <div class="sync-settings-card">
+            <div class="sync-settings-info">
+              <span class="sync-settings-status" id="settingsSyncStatusText">All notes are securely synchronized.</span>
+              <span class="sync-settings-sub" id="settingsSyncSubText">Real-time onSnapshot listeners & offline
+                IndexedDB cache enabled</span>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnSettingsForceSync">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+              </svg>
+              <span>Sync Now</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Firebase Project Credentials Setup -->
         <div class="settings-section">
           <div class="section-title-with-badge">
@@ -1100,7 +1177,8 @@
         </div>
       </div>
       <div class="modal-footer pin-modal-footer">
-        <button type="button" class="btn btn-danger-outline btn-sm" id="btnRemovePin" style="display: none;">Remove PIN</button>
+        <button type="button" class="btn btn-danger-outline btn-sm" id="btnRemovePin" style="display: none;">Remove
+          PIN</button>
         <div class="pin-footer-right">
           <button type="button" class="btn btn-secondary" id="btnCancelSetPin">Cancel</button>
           <button type="button" class="btn btn-primary" id="btnSavePin">Save PIN</button>
@@ -1148,7 +1226,8 @@
             <input type="password" maxlength="1" class="pin-digit-input" data-index="3" inputmode="numeric"
               pattern="[0-9]*" autocomplete="off">
           </div>
-          <div class="pin-error-text" id="unlockPinErrorText" style="display: none;">Incorrect PIN passcode. Try again.</div>
+          <div class="pin-error-text" id="unlockPinErrorText" style="display: none;">Incorrect PIN passcode. Try again.
+          </div>
         </div>
 
         <div class="pin-keypad" id="unlockPinKeypad">

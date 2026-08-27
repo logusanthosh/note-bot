@@ -15,6 +15,13 @@ import {
   signOut,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  enableIndexedDbPersistence
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const FIREBASE_STORAGE_KEY = 'noteflow_firebase_config_v1';
 
@@ -71,6 +78,7 @@ export function isCustomConfigConfigured() {
 // Global Firebase References
 let firebaseApp = null;
 let firebaseAuth = null;
+let firebaseFirestore = null;
 let googleProvider = null;
 
 /**
@@ -90,11 +98,64 @@ export function initFirebaseAuth() {
     googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({ prompt: 'select_account' });
 
+    // Also initialize Firestore
+    initFirestore();
+
     return { app: firebaseApp, auth: firebaseAuth, isReady: true };
   } catch (err) {
     console.error('Firebase initialization error:', err);
     return { app: null, auth: null, isReady: false, error: err };
   }
+}
+
+/**
+ * Initialize or get Cloud Firestore instance with offline persistence
+ */
+export function initFirestore() {
+  try {
+    if (!firebaseApp) {
+      const config = getStoredFirebaseConfig();
+      if (getApps().length === 0) {
+        firebaseApp = initializeApp(config);
+      } else {
+        firebaseApp = getApp();
+      }
+    }
+
+    if (firebaseFirestore) {
+      return firebaseFirestore;
+    }
+
+    // Try modern multi-tab persistent cache first
+    try {
+      firebaseFirestore = initializeFirestore(firebaseApp, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager()
+        })
+      });
+    } catch (cacheErr) {
+      firebaseFirestore = getFirestore(firebaseApp);
+      enableIndexedDbPersistence(firebaseFirestore).catch((e) => {
+        // Safe to ignore if already enabled or not supported in current environment
+        console.debug('Firestore persistence info:', e.message);
+      });
+    }
+
+    return firebaseFirestore;
+  } catch (err) {
+    console.error('Firestore initialization error:', err);
+    return null;
+  }
+}
+
+/**
+ * Get active Firestore instance
+ */
+export function getFirestoreInstance() {
+  if (!firebaseFirestore) {
+    return initFirestore();
+  }
+  return firebaseFirestore;
 }
 
 /**
