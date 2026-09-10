@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NoteFlow — Modern Notes & Productivity</title>
   <meta name="description"
-    content="A sleek, fast, and modern notes management web application with Google Sign-In, Firebase integration, dark mode, category tagging, pinning, favorites, and local persistence.">
+    content="A sleek, fast, and modern notes management web application with Google Sign-In, Firebase integration, dark mode, pinning, favorites, and local persistence.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -16,6 +16,7 @@
 </head>
 
 <body>
+
 
   <!-- =========================================================================
        1. Login / Authentication Screen (Shown when user is not logged in)
@@ -199,7 +200,7 @@
             <svg class="feature-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
-            <span>Real-time Search & Color Categories</span>
+            <span>Real-time Search & Color Accents</span>
           </div>
           <div class="auth-feature-item">
             <svg class="feature-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -335,62 +336,6 @@
           </li>
         </ul>
 
-        <!-- Categories Section -->
-        <div class="nav-section-header">
-          <span class="nav-section-title">Categories</span>
-          <button class="icon-btn-subtle" id="resetCategoryFilterBtn" title="Show All Categories"
-            style="display: none;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-              <path d="M3 3v5h5"></path>
-            </svg>
-          </button>
-        </div>
-        <ul class="nav-list category-list" id="categoryNavList">
-          <li>
-            <button class="nav-item category-nav-item" data-category="Personal">
-              <span class="category-indicator cat-personal"></span>
-              <span class="nav-label">Personal</span>
-              <span class="nav-count" id="countCatPersonal">0</span>
-            </button>
-          </li>
-          <li>
-            <button class="nav-item category-nav-item" data-category="Work">
-              <span class="category-indicator cat-work"></span>
-              <span class="nav-label">Work</span>
-              <span class="nav-count" id="countCatWork">0</span>
-            </button>
-          </li>
-          <li>
-            <button class="nav-item category-nav-item" data-category="Study">
-              <span class="category-indicator cat-study"></span>
-              <span class="nav-label">Study</span>
-              <span class="nav-count" id="countCatStudy">0</span>
-            </button>
-          </li>
-          <li>
-            <button class="nav-item category-nav-item" data-category="Project">
-              <span class="category-indicator cat-project"></span>
-              <span class="nav-label">Project</span>
-              <span class="nav-count" id="countCatProject">0</span>
-            </button>
-          </li>
-          <li>
-            <button class="nav-item category-nav-item" data-category="Ideas">
-              <span class="category-indicator cat-ideas"></span>
-              <span class="nav-label">Ideas</span>
-              <span class="nav-count" id="countCatIdeas">0</span>
-            </button>
-          </li>
-          <li>
-            <button class="nav-item category-nav-item" data-category="Other">
-              <span class="category-indicator cat-other"></span>
-              <span class="nav-label">Other</span>
-              <span class="nav-count" id="countCatOther">0</span>
-            </button>
-          </li>
-        </ul>
       </nav>
 
       <!-- Sidebar Footer / User Profile -->
@@ -547,7 +492,7 @@
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
             <input type="text" id="searchInput" class="search-input"
-              placeholder="Search notes by title, content, category, or tags... (Press / to focus)" autocomplete="off">
+              placeholder="Search notes by title, content, or tags... (Press / to focus)" autocomplete="off">
             <button class="search-clear-btn" id="searchClearBtn" title="Clear search" aria-label="Clear search">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                 stroke-linejoin="round">
@@ -737,17 +682,6 @@
         </div>
 
         <div class="editor-meta-row">
-          <div class="form-field-inline">
-            <label for="noteCategorySelect" class="form-label-compact">Category:</label>
-            <select id="noteCategorySelect" class="form-select-compact">
-              <option value="Personal">Personal</option>
-              <option value="Work">Work</option>
-              <option value="Study">Study</option>
-              <option value="Project">Project</option>
-              <option value="Ideas">Ideas</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
 
           <div class="form-field-inline">
             <label class="form-label-compact">Accent:</label>
@@ -1059,7 +993,6 @@
     <div class="modal-dialog modal-preview">
       <div class="modal-header">
         <div class="modal-header-left">
-          <span class="preview-category-badge" id="previewCategoryBadge">Work</span>
           <span class="preview-date-label" id="previewDateLabel">Created 2 mins ago</span>
         </div>
         <div class="modal-header-right">

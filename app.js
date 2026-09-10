@@ -42,12 +42,11 @@ import { FirestoreSync, SYNC_STATUS } from './firestore.js';
 • **Google & Firebase Auth:** Secure sign-in integrated seamlessly.
 • **Real-time Search:** Press \`/\` or \`Ctrl+K\` to find anything instantly.
 • **Pinned & Favorites:** Keep your highest priority thoughts at the top.
-• **Categories & Tags:** Organize your work by Personal, Work, Study, Project, Ideas, and custom tags.
+• **Tags & Colors:** Organize your work with custom tags and color accents.
 • **Offline & Private:** All data is safely stored in your browser's LocalStorage.
 • **Dark & Light Mode:** Toggle seamlessly from the bottom-left sidebar.
 
 Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!`,
-      category: 'Project',
       tags: ['welcome', 'guide', 'shortcuts'],
       color: 'purple',
       isPinned: true,
@@ -64,7 +63,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
 2. Use Plus Jakarta Sans typography with subtle tracking.
 3. Integrate tactile micro-animations for card hover states and toast alerts.
 4. Keep color accents harmonious across emerald, amber, rose, and indigo.`,
-      category: 'Ideas',
       tags: ['design', 'ui', 'glassmorphism'],
       color: 'rose',
       isPinned: true,
@@ -81,7 +79,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
 • Debounced search handlers to avoid layout thrashing.
 • Use CSS custom properties for instant zero-runtime theme toggling.
 • Batch DOM updates using DocumentFragments when rendering note collections.`,
-      category: 'Study',
       tags: ['javascript', 'frontend', 'web-dev'],
       color: 'amber',
       isPinned: false,
@@ -98,7 +95,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
 [x] Integrate Google Sign-In with Firebase Auth
 [ ] Implement JSON import/export sync tool
 [ ] Configure automated test suites and accessibility check`,
-      category: 'Work',
       tags: ['roadmap', 'planning', 'sprint'],
       color: 'blue',
       isPinned: false,
@@ -115,7 +111,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
 • Portable camp stove & pour-over coffee kit
 • Trail mix, dried fruits, energy bars
 • First aid kit, solar power bank, and headlamp`,
-      category: 'Personal',
       tags: ['outdoors', 'weekend', 'travel'],
       color: 'emerald',
       isPinned: false,
@@ -132,7 +127,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     currentUser: null, // { uid, displayName, email, photoURL, provider: 'google' }
     notes: [],
     activeView: 'all', // 'all' | 'pinned' | 'favorites' | 'trash'
-    activeCategory: null, // null or string (e.g. 'Work')
     searchQuery: '',
     sortBy: 'updated_desc',
     viewMode: 'grid', // 'grid' | 'list'
@@ -207,20 +201,12 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     navPinned: document.getElementById('navPinned'),
     navFavorites: document.getElementById('navFavorites'),
     navTrash: document.getElementById('navTrash'),
-    categoryNavList: document.getElementById('categoryNavList'),
-    resetCategoryFilterBtn: document.getElementById('resetCategoryFilterBtn'),
     
     // Counters
     countAllNotes: document.getElementById('countAllNotes'),
     countPinned: document.getElementById('countPinned'),
     countFavorites: document.getElementById('countFavorites'),
     countTrash: document.getElementById('countTrash'),
-    countCatPersonal: document.getElementById('countCatPersonal'),
-    countCatWork: document.getElementById('countCatWork'),
-    countCatStudy: document.getElementById('countCatStudy'),
-    countCatProject: document.getElementById('countCatProject'),
-    countCatIdeas: document.getElementById('countCatIdeas'),
-    countCatOther: document.getElementById('countCatOther'),
 
     // Topbar & Stats
     greetingHeading: document.getElementById('greetingHeading'),
@@ -281,7 +267,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     cancelEditorBtn: document.getElementById('cancelEditorBtn'),
     noteForm: document.getElementById('noteForm'),
     noteTitleInput: document.getElementById('noteTitleInput'),
-    noteCategorySelect: document.getElementById('noteCategorySelect'),
     colorPalettePicker: document.getElementById('colorPalettePicker'),
     tagInputContainer: document.getElementById('tagInputContainer'),
     modalTagChips: document.getElementById('modalTagChips'),
@@ -350,7 +335,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     previewCloseBottomBtn: document.getElementById('previewCloseBottomBtn'),
     previewEditBtn: document.getElementById('previewEditBtn'),
     previewEditBottomBtn: document.getElementById('previewEditBottomBtn'),
-    previewCategoryBadge: document.getElementById('previewCategoryBadge'),
     previewDateLabel: document.getElementById('previewDateLabel'),
     previewPinBtn: document.getElementById('previewPinBtn'),
     previewFavoriteBtn: document.getElementById('previewFavoriteBtn'),
@@ -852,7 +836,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
         DOM.editorModalTitle.textContent = 'Edit Note';
         DOM.noteTitleInput.value = note.title;
         DOM.noteContentInput.value = note.content;
-        DOM.noteCategorySelect.value = note.category || 'Personal';
 
         state.editorColor = note.color || 'default';
         state.editorIsPinned = !!note.isPinned;
@@ -868,7 +851,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
 
         DOM.editorModeTag.textContent = 'New Note';
         DOM.editorModalTitle.textContent = 'Create Note';
-        DOM.noteCategorySelect.value = state.activeCategory || 'Personal';
 
         state.editorColor = 'default';
         state.editorIsPinned = state.activeView === 'pinned';
@@ -973,7 +955,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     saveCurrentNote() {
       const title = DOM.noteTitleInput.value.trim();
       const content = DOM.noteContentInput.value.trim();
-      const category = DOM.noteCategorySelect.value;
 
       if (!title) {
         Toast.show('Please provide a title for your note.', 'warning');
@@ -990,7 +971,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
             ...state.notes[noteIndex],
             title,
             content,
-            category,
             tags: [...state.editorTags],
             color: state.editorColor,
             isPinned: state.editorIsPinned,
@@ -1013,7 +993,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
           id: Helpers.uuid(),
           title,
           content,
-          category,
           tags: [...state.editorTags],
           color: state.editorColor,
           isPinned: state.editorIsPinned,
@@ -1188,9 +1167,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
         PinManager.promptUnlock(note.id, 'preview');
         return;
       }
-
-      DOM.previewCategoryBadge.textContent = note.category || 'General';
-      DOM.previewCategoryBadge.className = `preview-category-badge category-pill cat-${(note.category || 'other').toLowerCase()}`;
       DOM.previewDateLabel.textContent = `Created ${Helpers.formatDate(note.createdAt)}`;
       DOM.previewUpdatedLabel.textContent = `Last updated ${Helpers.timeAgo(note.updatedAt)}`;
 
@@ -1706,18 +1682,13 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
         filtered = filtered.filter(n => n.isTrash);
       }
 
-      if (state.activeCategory && state.activeView !== 'trash') {
-        filtered = filtered.filter(n => (n.category || '').toLowerCase() === state.activeCategory.toLowerCase());
-      }
-
       if (state.searchQuery.trim()) {
         const q = state.searchQuery.toLowerCase().trim();
         filtered = filtered.filter(n => {
           const matchTitle = (n.title || '').toLowerCase().includes(q);
           const matchContent = (n.content || '').toLowerCase().includes(q);
-          const matchCategory = (n.category || '').toLowerCase().includes(q);
           const matchTags = Array.isArray(n.tags) && n.tags.some(t => t.toLowerCase().includes(q));
-          return matchTitle || matchContent || matchCategory || matchTags;
+          return matchTitle || matchContent || matchTags;
         });
       }
 
@@ -1746,13 +1717,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       DOM.countPinned.textContent = pinnedNotes.length;
       DOM.countFavorites.textContent = favoriteNotes.length;
       DOM.countTrash.textContent = trashNotes.length;
-
-      const categories = ['Personal', 'Work', 'Study', 'Project', 'Ideas', 'Other'];
-      categories.forEach(cat => {
-        const count = activeNotes.filter(n => (n.category || '').toLowerCase() === cat.toLowerCase()).length;
-        const el = DOM[`countCat${cat}`];
-        if (el) el.textContent = count;
-      });
     },
 
     createNoteCardElement(note) {
@@ -1769,8 +1733,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
           ${note.tags.map(t => `<span class="tag-badge">#${Helpers.escapeHtml(t)}</span>`).join('')}
         </div>`;
       }
-
-      const catLower = (note.category || 'other').toLowerCase();
 
       let headerActionsHtml = '';
       if (!note.isTrash) {
@@ -1841,7 +1803,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
         ${tagsHtml}
         <div class="card-footer">
           <div class="card-meta-left">
-            <span class="category-pill cat-${catLower}">${Helpers.escapeHtml(note.category || 'General')}</span>
             <span class="card-time">${Helpers.timeAgo(note.updatedAt)}</span>
           </div>
           ${footerActionsHtml}
@@ -1890,10 +1851,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       else if (state.activeView === 'favorites') titleText = 'Favorite Notes';
       else if (state.activeView === 'trash') titleText = 'Trash Bin';
 
-      if (state.activeCategory && state.activeView !== 'trash') {
-        titleText = `${state.activeCategory} Notes`;
-      }
-
       DOM.currentViewTitle.textContent = titleText;
       DOM.resultsCountBadge.textContent = `${filteredNotes.length} note${filteredNotes.length === 1 ? '' : 's'}`;
 
@@ -1903,29 +1860,7 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
         DOM.trashControls.style.display = 'none';
       }
 
-      if (state.activeCategory) {
-        DOM.resetCategoryFilterBtn.style.display = 'flex';
-      } else {
-        DOM.resetCategoryFilterBtn.style.display = 'none';
-      }
-
       DOM.activeFilterChips.innerHTML = '';
-      if (state.activeCategory) {
-        const chip = document.createElement('span');
-        chip.className = 'filter-chip';
-        chip.innerHTML = `
-          <span>Category: ${Helpers.escapeHtml(state.activeCategory)}</span>
-          <button type="button" class="filter-chip-remove" id="clearCatFilterChip" aria-label="Clear category filter">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
-        `;
-        DOM.activeFilterChips.appendChild(chip);
-        chip.querySelector('#clearCatFilterChip').addEventListener('click', () => {
-          state.activeCategory = null;
-          App.updateNavActiveState();
-          App.render();
-        });
-      }
 
       if (state.searchQuery.trim()) {
         const searchChip = document.createElement('span');
@@ -1982,13 +1917,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
           DOM.emptyStateBtn.onclick = () => {
             App.setActiveView('all');
           };
-        } else if (state.activeCategory) {
-          DOM.emptyStateTitle.textContent = `No notes in ${state.activeCategory}`;
-          DOM.emptyStateDesc.textContent = `You don't have any notes categorized under "${state.activeCategory}" yet.`;
-          DOM.emptyStateBtn.innerHTML = `<span>+ Create Note in ${state.activeCategory}</span>`;
-          DOM.emptyStateBtn.onclick = () => {
-            NoteManager.openEditor();
-          };
         } else {
           DOM.emptyStateTitle.textContent = 'No notes yet';
           DOM.emptyStateDesc.textContent = 'Create your first note to capture ideas, manage tasks, and organize your work effortlessly.';
@@ -2002,7 +1930,7 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
 
       DOM.emptyStateContainer.style.display = 'none';
 
-      const shouldSplitPinned = state.activeView === 'all' && !state.activeCategory && !state.searchQuery.trim();
+      const shouldSplitPinned = state.activeView === 'all' && !state.searchQuery.trim();
       const pinnedNotes = filteredNotes.filter(n => n.isPinned);
       const otherNotes = filteredNotes.filter(n => !n.isPinned);
 
@@ -2031,19 +1959,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
 
     setActiveView(viewName) {
       state.activeView = viewName;
-      state.activeCategory = null;
-      this.updateNavActiveState();
-      this.render();
-      App.closeSidebar();
-    },
-
-    setActiveCategory(category) {
-      if (state.activeCategory === category) {
-        state.activeCategory = null;
-      } else {
-        state.activeCategory = category;
-        state.activeView = 'all';
-      }
       this.updateNavActiveState();
       this.render();
       App.closeSidebar();
@@ -2052,16 +1967,7 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
     updateNavActiveState() {
       const navButtons = [DOM.navAllNotes, DOM.navPinned, DOM.navFavorites, DOM.navTrash];
       navButtons.forEach(btn => {
-        if (!state.activeCategory && btn.getAttribute('data-view') === state.activeView) {
-          btn.classList.add('active');
-        } else {
-          btn.classList.remove('active');
-        }
-      });
-
-      const catButtons = DOM.categoryNavList.querySelectorAll('.category-nav-item');
-      catButtons.forEach(btn => {
-        if (state.activeCategory && btn.getAttribute('data-category').toLowerCase() === state.activeCategory.toLowerCase()) {
+        if (btn.getAttribute('data-view') === state.activeView) {
           btn.classList.add('active');
         } else {
           btn.classList.remove('active');
@@ -2112,21 +2018,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
       DOM.navPinned.addEventListener('click', () => this.setActiveView('pinned'));
       DOM.navFavorites.addEventListener('click', () => this.setActiveView('favorites'));
       DOM.navTrash.addEventListener('click', () => this.setActiveView('trash'));
-
-      // Category items clicks
-      DOM.categoryNavList.addEventListener('click', (e) => {
-        const item = e.target.closest('.category-nav-item');
-        if (item) {
-          const category = item.getAttribute('data-category');
-          this.setActiveCategory(category);
-        }
-      });
-
-      DOM.resetCategoryFilterBtn.addEventListener('click', () => {
-        state.activeCategory = null;
-        this.updateNavActiveState();
-        this.render();
-      });
 
       // Theme toggle button
       DOM.themeToggleBtn.addEventListener('click', () => {
@@ -2303,7 +2194,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
                   id: item.id || Helpers.uuid(),
                   title: String(item.title),
                   content: String(item.content || ''),
-                  category: String(item.category || 'Personal'),
                   tags: Array.isArray(item.tags) ? item.tags : [],
                   color: item.color || 'default',
                   isPinned: !!item.isPinned,
@@ -2389,7 +2279,6 @@ Try creating your next note by pressing **Ctrl + N** or clicking **+ New Note**!
             localStorage.clear();
             state.notes = [];
             state.activeView = 'all';
-            state.activeCategory = null;
             state.searchQuery = '';
             state.userName = 'Sandy';
             Storage.saveSettings();

@@ -16,9 +16,9 @@ A modern, fast, and feature-complete Notes Management Web Application built with
 - **Dark & Light Modes**: Instant theme toggle with full color token support and persistent storage.
 - **Dynamic Greetings & Stats**: Time-of-day greeting (morning, afternoon, evening) with user's Google display name / avatar photo and live counters for Total Notes, Pinned, Favorites, and Trash.
 - **Full CRUD Workflow**: Create, read, edit, delete, pin, favorite, and restore notes effortlessly.
-- **Color Accents**: Assign customizable color tags/accents (Default, Purple, Blue, Emerald, Amber, Rose) to visually categorize cards.
+- **Color Accents**: Assign customizable color tags/accents (Default, Purple, Blue, Emerald, Amber, Rose) to visually organize cards.
 - **Interactive Tagging**: Chip-based tag input in the modal editor (type and press `Enter` or `,`).
-- **Real-Time Search & Filters**: Instant multi-field search across titles, content, categories, and tags with debounced rendering.
+- **Real-Time Search & Filters**: Instant multi-field search across titles, content, and tags with debounced rendering.
 - **Trash & Restore Lifecycle**: Safe deletion pattern (moves to Trash with instant Undo toast, plus permanent deletion and empty trash confirmation modals).
 - **Grid & List Layout Views**: Seamless toggle between responsive card grid and compact list view.
 - **Data Portability**: Full JSON export and import capabilities for local backup and restore.
@@ -43,7 +43,6 @@ users (collection)
                  ├── id: string (deterministic unique note ID)
                  ├── title: string
                  ├── content: string
-                 ├── category: string ('Personal', 'Work', 'Study', 'Project', 'Ideas', 'Other')
                  ├── tags: array of strings
                  ├── color: string ('purple', 'rose', 'amber', 'blue', 'emerald', 'default')
                  ├── isPinned: boolean

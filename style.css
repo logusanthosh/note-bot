@@ -19,20 +19,6 @@
   --color-danger-light: rgba(239, 68, 68, 0.12);
   --color-info: #0ea5e9;
 
-  /* Category Specific Colors */
-  --cat-personal: #10b981;
-  --cat-personal-bg: rgba(16, 185, 129, 0.12);
-  --cat-work: #6366f1;
-  --cat-work-bg: rgba(99, 102, 241, 0.12);
-  --cat-study: #f59e0b;
-  --cat-study-bg: rgba(245, 158, 11, 0.12);
-  --cat-project: #8b5cf6;
-  --cat-project-bg: rgba(139, 92, 246, 0.12);
-  --cat-ideas: #f43f5e;
-  --cat-ideas-bg: rgba(244, 63, 94, 0.12);
-  --cat-other: #64748b;
-  --cat-other-bg: rgba(100, 116, 139, 0.12);
-
   /* Typography */
   --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -897,22 +883,6 @@ body {
   border-color: rgba(99, 102, 241, 0.3);
 }
 
-/* Category Indicators */
-.category-indicator {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
-}
-
-.cat-personal { background-color: var(--cat-personal); }
-.cat-work { background-color: var(--cat-work); }
-.cat-study { background-color: var(--cat-study); }
-.cat-project { background-color: var(--cat-project); }
-.cat-ideas { background-color: var(--cat-ideas); }
-.cat-other { background-color: var(--cat-other); }
-
 /* Sidebar Footer & User Profile */
 .sidebar-footer {
   border-top: 1px solid var(--border-color);
@@ -1683,24 +1653,6 @@ html[data-theme="light"] .moon-icon {
   gap: 0.5rem;
   color: var(--text-muted);
 }
-
-.category-pill {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  padding: 0.15rem 0.55rem;
-  border-radius: var(--radius-full);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  text-transform: capitalize;
-}
-
-.category-pill.cat-personal { color: var(--cat-personal); background: var(--cat-personal-bg); }
-.category-pill.cat-work { color: var(--cat-work); background: var(--cat-work-bg); }
-.category-pill.cat-study { color: var(--cat-study); background: var(--cat-study-bg); }
-.category-pill.cat-project { color: var(--cat-project); background: var(--cat-project-bg); }
-.category-pill.cat-ideas { color: var(--cat-ideas); background: var(--cat-ideas-bg); }
-.category-pill.cat-other { color: var(--cat-other); background: var(--cat-other-bg); }
 
 .card-time {
   color: var(--text-muted);
